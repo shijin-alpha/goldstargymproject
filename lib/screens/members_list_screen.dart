@@ -13,7 +13,45 @@ class MembersListScreen extends StatefulWidget {
 
 class _MembersListScreenState extends State<MembersListScreen> {
   final MemberService _memberService = MemberService();
+  final TextEditingController _searchController = TextEditingController();
   String _filterStatus = 'all'; // all, active, inactive
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase().trim();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Member> _filterMembers(List<Member> members) {
+    var filteredMembers = members;
+
+    // Apply status filter
+    if (_filterStatus != 'all') {
+      filteredMembers = filteredMembers.where((m) => m.status == _filterStatus).toList();
+    }
+
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      filteredMembers = filteredMembers.where((member) {
+        final nameLower = member.name.toLowerCase();
+        final phoneLower = member.phone.toLowerCase();
+        return nameLower.contains(_searchQuery) || phoneLower.contains(_searchQuery);
+      }).toList();
+    }
+
+    return filteredMembers;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,70 +74,122 @@ class _MembersListScreenState extends State<MembersListScreen> {
           ),
         ],
       ),
-      body: StreamBuilder<List<Member>>(
-        stream: _memberService.getMembersStream(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('Error: ${snapshot.error}'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => setState(() {}),
-                    child: const Text('Retry'),
-                  ),
-                ],
+      body: Column(
+        children: [
+          // Search Bar
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by name or phone...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-            );
-          }
+            ),
+          ),
+          // Members List
+          Expanded(
+            child: StreamBuilder<List<Member>>(
+              stream: _memberService.getMembersStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          var members = snapshot.data ?? [];
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text('Error: ${snapshot.error}'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => setState(() {}),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-          // Apply filter
-          if (_filterStatus != 'all') {
-            members = members.where((m) => m.status == _filterStatus).toList();
-          }
+                var members = snapshot.data ?? [];
+                var filteredMembers = _filterMembers(members);
 
-          if (members.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    _filterStatus == 'all'
-                        ? 'No members yet'
-                        : 'No $_filterStatus members',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap + to add your first member',
-                    style: TextStyle(color: Colors.grey[500]),
-                  ),
-                ],
-              ),
-            );
-          }
+                if (filteredMembers.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          _searchQuery.isNotEmpty
+                              ? 'No members found'
+                              : _filterStatus == 'all'
+                                  ? 'No members yet'
+                                  : 'No $_filterStatus members',
+                          style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _searchQuery.isNotEmpty
+                              ? 'Try a different search term'
+                              : 'Tap + to add your first member',
+                          style: TextStyle(color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(8),
-            itemCount: members.length,
-            itemBuilder: (context, index) {
-              final member = members[index];
-              return _buildMemberCard(context, member);
-            },
-          );
-        },
+                return ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: filteredMembers.length,
+                  itemBuilder: (context, index) {
+                    final member = filteredMembers[index];
+                    return _buildMemberCard(context, member);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _navigateToAddMember(context),
