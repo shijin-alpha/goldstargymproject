@@ -1,0 +1,54 @@
+{
+  "collection": "users",
+  "documents": [
+    {
+      "id": "admin_001",
+      "data": {
+        "name": "Admin User",
+        "email": "admin@goldstargym.com",
+        "password": "Admin@123",
+        "phone": "+1234567890",
+        "role": "admin",
+        "pin": "123456",
+        "status": "active",
+        "createdAt": "2024-01-01T00:00:00Z",
+        "lastLogin": "2024-01-15T10:30:00Z"
+      }
+    },
+    {
+      "id": "admin_002",
+      "data": {
+        "name": "John Smith",
+        "email": "john.smith@goldstargym.com",
+        "password": "SecurePass456",
+        "phone": "+1987654321",
+        "role": "admin",
+        "pin": "654321",
+        "status": "active",
+        "createdAt": "2024-01-05T00:00:00Z",
+        "lastLogin": "2024-01-14T15:45:00Z"
+      }
+    },
+    {
+      "id": "admin_003",
+      "data": {
+        "name": "Sarah Johnson",
+        "email": "sarah.j@goldstargym.com",
+        "password": "MyPass789",
+        "phone": "+1555123456",
+        "role": "admin",
+        "pin": "789012",
+        "status": "inactive",
+        "createdAt": "2024-01-10T00:00:00Z",
+        "lastLogin": "2024-01-12T09:20:00Z"
+      }
+    }
+  ],
+  "notes": [
+    "Remember to create corresponding users in Firebase Authentication",
+    "Each user in Firestore must have a matching user in Firebase Auth with the same email/password",
+    "Only users with role='admin' and status='active' can login",
+    "PINs should be 4-6 digits",
+    "In production, passwords should be hashed, not stored in plain text"
+  ]
+}
